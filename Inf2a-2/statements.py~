@@ -1,0 +1,124 @@
+# File: statements.py
+# Template file for Informatics 2A Assignment 2:
+# 'A Natural Language Query System in Python/NLTK'
+
+# John Longley, November 2012
+# Revised November 2013 and November 2014 with help from Nikolay Bogoychev
+
+
+
+# PART A: Processing statements
+
+def add(lst,item):
+    if (item not in lst):
+        lst.insert(len(lst),item)
+
+class Lexicon:
+    """stores known word stems of various part-of-speech categories"""
+    # add code here
+    def __init__(self):
+	self.lexStem = []
+        self.lexCat = []
+
+    def add(self, stem, cat):
+        self.lexStem.append(stem)
+	self.lexCat.append(cat)
+
+    def getAll(self, cat):
+        result = []
+        for a in range (0, len(self.lexCat)): 
+            if (self.lexCat[a] == cat): 
+               #result.append(self.lexStem[a])
+                add(result, (self.lexStem[a]))
+        return result
+                
+
+class FactBase:
+    # add code here
+    def __init__(self):
+        self.unaryQueries = []
+        self.binaryQueries = []
+    
+    def addUnary(self, pred, e1):
+        add(self.unaryQueries, [pred, e1])
+
+    def queryUnary(self, pred, e1):
+        return [pred, e1] in self.unaryQueries
+
+    def addBinary(self, pred, e1, e2):
+        add(self.binaryQueries, [pred, e1, e2])
+
+    def queryBinary(self, pred, e1, e2):
+        return [pred, e1, e2] in self.binaryQueries
+
+import re
+#import nltk
+
+def verb_stem(s):
+    """extracts the stem from the 3sg form of a verb, or returns empty string"""
+    # add code here
+    # return nltk.stem.porter.PorterStemmer().stem_word(s)
+    vowels = ['a','e','i','o','u']
+
+    if (re.match("[a-zA-Z0-9_]*[^s|x|y|z|ch|sh|a|e|i|o|u]s$",s)):
+        return s[:-1] #first req
+    
+    if (re.match("[a-zA-Z0-9_]*(a|e|i|o|u)ys$",s)): #second req
+        return s[:-1]
+    
+    if (s.endswith('ies') and len(s) >= 5): #third req
+        return (s[:-3] + 'y')
+
+    if (re.match("[a-zA-Z0-9_]*[^aeiou]ies$",s)): #fourth req
+        return s[:-1] 
+
+    if (re.match("[a-zA-Z0-9]*(o|x|ch|sh|ss|zz)es$",s)): #fifth req
+        return s[:-2]
+
+    if (re.match("[a-zA-Z0-9]*[^sse|zze](se|ze)s$",s)): #sixth req
+        return s[:-1]
+   
+    if (s=='have'): #seventh requiremetn
+        return 'has'   
+
+    if (re.match("[a-zA-Z0-9]*[^i|o|s|x|z|ch|sh]es$",s)): #eighth and last req
+        return s[:-1]
+
+def add_proper_name (w,l):
+    """adds a name to a lexicon, checking if first letter is uppercase"""
+    if ('A' <= w[0] and w[0] <= 'Z'):
+        lx.add(w,'P')
+        return ''
+    else:
+        return (w + " isn't a proper name")
+
+def process_statement (lx,wlist,fb):
+    """analyses a statement and updates lexicon and fact base accordingly;
+       returns '' if successful, or error message if not."""
+    # Grammar for the statement language is:
+    #   S  -> P is AR Ns | P is A | P Is | P Ts P
+    #   AR -> a | an
+    # We parse this in an ad hoc way.
+    msg = add_proper_name (wlist[0],lx)
+    if (msg == ''):
+        if (wlist[1] == 'is'):
+            if (wlist[2] in ['a','an']):
+                lx.add (wlist[3],'N')
+                fb.addUnary ('N_'+wlist[3],wlist[0])
+            else:
+                lx.add (wlist[2],'A')
+                fb.addUnary ('A_'+wlist[2],wlist[0])
+        else:
+            stem = verb_stem(wlist[1])
+            if (len(wlist) == 2):
+                lx.add (stem,'I')
+                fb.addUnary ('I_'+stem,wlist[0])
+            else:
+                msg = add_proper_name (wlist[2],lx)
+                if (msg == ''):
+                    lx.add (stem,'T')
+                    fb.addBinary ('T_'+stem,wlist[0],wlist[2])
+    return msg
+                        
+# End of PART A.
+
